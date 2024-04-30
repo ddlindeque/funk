@@ -1,4 +1,4 @@
-# funk Functional Programming Language
+# *funk* - A Functional Programming Language
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ddlindeque/funk?quickstart=1)
 
