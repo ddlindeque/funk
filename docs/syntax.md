@@ -1,0 +1,230 @@
+# Syntax of *funk*
+
+The language contains the following constructs
+* Comments
+* Type declarations
+* Constant declarations
+* Function declarations
+* Class declarations
+* Class instance declarations
+
+## Comments
+
+The language support two kinds of comments
+* Line comments
+* Block comments
+
+### Line comments
+
+Line comments are comments that start with `//`, the comment end at the end of the line.
+
+#### Examples
+
+```
+// This is the comment, which ends at the end of this line
+auto pi = 3.1415; // This is also a comment which ends at the end of the line
+```
+
+### Block comments
+
+Block comments start the `/*` and end with `*/`. Block comments can span many lines.
+
+#### Examples
+
+```
+auto pi /* approximation */ = 3.1415;
+/*
+    This is a multi-line comment.
+    Which can span any number of lines.
+*/
+```
+
+### Comments on comments
+
+A line comment *inside* a block comment is not considered a comment and a block comment *inside* a line comment is not considered a comment and does not end a comment at the `*/` character.
+
+#### Examples
+
+```
+// This /* is a comment */ and this still is
+
+/*
+    This is a multiline comment
+    // and this is */ auto pi = 3.1415;
+```
+
+In the above, the `auto pi = 3.1415;` statement is an actual statement, and not a comment.
+
+## General approach
+
+The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some C# influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `string[]->Operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*.
+
+### Everything are expressions
+
+The language is based on *expressions*
+* *Value expressions*  
+  Evaluation of a *Value expression* results in a value, i.e.: 5, or "hello world".
+* *Type expressions*  
+  Evaluation of a *Type expression* results in a type, i.e.: int64, and is known as a *type instance*.
+* No distinction is made between type vs value expressions.
+* The *type* of a type is `type`. So, `int64` evaluate to a value with the type `type`.
+* Type literals, i.e.: `int64` or `string` are just *expressions* which happen to evaluate to an instance of `type`.
+* Function type constructors, i.e.: `int64->string` is an *expression* using `->` as a binary operator with a type `type->type->type`.
+* Function calls are modelled on C++, i.e.: `add(4,5);`
+* Statements are seperated by `;`
+* Generics are modelled after the C# style
+* Attributes are also just expressions, but they happen to evaluate to a value of type `attribute`
+* The *standard library* will follow the same conventions as C++, maps will be `::std::map`, etc. Some types, like *string* will have an alias as a keyword, i.e.: `string` will be alias to `::std::string`.
+
+### Expression lists
+
+#### Comma seperated expressions
+
+```
+cse: // empty set
+    | cse "," expression
+```
+
+### Attributes
+
+Any expression can be associated with a set of attributes. For instance to associate the linearity of a type is specified as an attribute, like so `[affine] int64`.
+
+#### Syntax
+
+```
+attributes: // empty
+    | "[" cse "]"
+```
+
+### Names
+
+The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `(<operator>)` approach, modelling on Haskell. For instance, the `+` operator can be referenced, as a function, using the name `(+)`. All operators are defined in the root namespace.
+
+#### Syntax
+
+```
+
+name:
+    IDENTIFIER
+  | "::" IDENTIFIER
+  | name "::" IDENTIFIER
+  | name "<" cse ">"
+
+namespace: 
+    "namespace" "{" statements "}" // private
+  | "namespace" name "{" statements "}"
+
+```
+
+#### Examples
+
+```
+auto print<[class(Printable)] a>(a[] items) -> Operation<void>
+{
+  std::cout << '[';
+  for(x : items) {
+    std::cout << ' ' << x;
+  }
+  std::cout << ']';
+}
+
+namespace A {
+  // Here everything is in namespace 'A'
+};
+
+namespace B {
+  // Here everything is in namespace B
+namespace C {
+  // Here everything is in namespace B::C
+};
+
+};
+
+namespace B::C {
+  // Here everything is in the collapsed namespace B::C
+};
+
+namespace A {
+std::string X::Y::Z::x = "Hello World"; // Defining a symbol A::X::Y::Z::x
+std::string ::X::Y::Z::y = "Yes"; // Defining a symbol X::Y::Z::x
+std::string z = "Plain"; // Defining a symbol A::z
+std::string ::r = "root"; // Defining a symbol r
+}
+
+```
+
+## Type declarations
+
+There are two kinds of types to be declared
+* *Sum* types
+* *Product* types
+
+Any type can be associated with a set of attributes, which means all *instantiations* of the type will have those attributes by default.
+
+### *Sum* types
+
+Sum types are modelled after the familiar Haskell syntax.
+
+#### Syntax
+
+```
+type: "data" attributes name "=" members
+members:
+      member
+    | member "|" member
+member:
+      name
+    | name "(" expression ")" // here expressions is a type constructor
+```
+
+#### Examples
+
+```
+data YesNo = Yes | No;
+// YesNo is an expression of type 'type'
+// Yes and No are expressions of type 'YesNo'
+
+data Maybe<a> = None | Some(a);
+// Maybe is a constructor taking one parameter of type 'type', i.e.: 'type->type'
+// None is a constructor taking no parameters, i.e.: 'Maybe<a>'
+// Some is a constructor taking one parameter of type 'a', i.e.: 'a->Maybe<a>'
+
+data [affine] Handle = Empty | Resource(int64);
+// Handle has been associated with the attribute named 'affine'
+```
+
+### *Product* types
+
+Product types are modelled on *tuples*, which is convenient *on the fly* type declarations, but can be a bit vague in the meaning of members of the tuple. For instance, to present a type `(string, string)` it is completely unclear what the two members are for. Thus the language support two variants of the *product* type.
+* pure tuple
+  Here the members are unnamed and keyed just by index
+* record type
+  The members of the type are named and keyed by name
+
+#### Examples
+
+### Constant declarations
+
+To define a constant the type, name and value must be supplied, although `auto` can be used as the type, to allow type inference. It is not possible to declare a *generic* constant, since it's not possible to create an instance of a generic type. The language declare the following constant values by default
+* `()` which is the only value of type `void`.
+* `[]` which is a generic value representing an empty list of the generic type.
+
+#### Syntax
+
+```
+const: expression name "=" expression ";"
+```
+
+### Function declarations
+
+```
+auto main(string[] args) -> Operation<int64>
+{
+    // This is monadic
+    let name = readLine();
+    writeLine(name);
+    return 0;
+};
+
+auto add(int64 x, int64 y) -> int64 = x + y; // This is not monadic
+```
