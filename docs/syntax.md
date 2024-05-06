@@ -5,8 +5,7 @@ The language contains the following constructs
 * Type declarations
 * Constant declarations
 * Function declarations
-* Class declarations
-* Class instance declarations
+* Classes
 
 ## Comments
 
@@ -57,7 +56,7 @@ In the above, the `auto pi = 3.1415;` statement is an actual statement, and not 
 
 ## General approach
 
-The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some C# influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `string[]->Operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*.
+The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some C# influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `std::random_access_iterator<string>->std::operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*.
 
 ### Everything are expressions
 
@@ -67,7 +66,7 @@ The language is based on *expressions*
 * *Type expressions*  
   Evaluation of a *Type expression* results in a type, i.e.: int64, and is known as a *type instance*.
 * No distinction is made between type vs value expressions.
-* The *type* of a type is `type`. So, `int64` evaluate to a value with the type `type`.
+* The *type* of a type is `type`. So, `int64` evaluate to a value with the type of `type`.
 * Type literals, i.e.: `int64` or `string` are just *expressions* which happen to evaluate to an instance of `type`.
 * Function type constructors, i.e.: `int64->string` is an *expression* using `->` as a binary operator with a type `type->type->type`.
 * Function calls are modelled on C++, i.e.: `add(4,5);`
@@ -98,7 +97,7 @@ attributes: // empty
 
 ### Names
 
-The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `(<operator>)` approach, modelling on Haskell. For instance, the `+` operator can be referenced, as a function, using the name `(+)`. All operators are defined in the root namespace.
+The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator<operator>` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
 
 #### Syntax
 
@@ -109,6 +108,9 @@ name:
   | "::" IDENTIFIER
   | name "::" IDENTIFIER
   | name "<" cse ">"
+  | OPERATOR_PLUS
+  | OPERATOR_MINUS
+  ...
 
 namespace: 
     "namespace" "{" statements "}" // private
@@ -151,6 +153,10 @@ std::string z = "Plain"; // Defining a symbol A::z
 std::string ::r = "root"; // Defining a symbol r
 }
 
+auto operator+(mytype lhs, mytype rhs) -> mytype {
+  //...
+}
+
 ```
 
 ## Type declarations
@@ -163,12 +169,12 @@ Any type can be associated with a set of attributes, which means all *instantiat
 
 ### *Sum* types
 
-Sum types are modelled after the familiar Haskell syntax.
+Sum types are modelled after the familiar Haskell syntax using C++ naming. The `variant` keyword is an alias for `::std::variant`.
 
 #### Syntax
 
 ```
-type: "data" attributes name "=" members
+type: "variant" attributes name "=" members
 members:
       member
     | member "|" member
@@ -180,28 +186,38 @@ member:
 #### Examples
 
 ```
-data YesNo = Yes | No;
+variant YesNo = Yes | No;
 // YesNo is an expression of type 'type'
 // Yes and No are expressions of type 'YesNo'
 
-data Maybe<a> = None | Some(a);
+variant Maybe<a> = None | Some(a);
 // Maybe is a constructor taking one parameter of type 'type', i.e.: 'type->type'
 // None is a constructor taking no parameters, i.e.: 'Maybe<a>'
 // Some is a constructor taking one parameter of type 'a', i.e.: 'a->Maybe<a>'
 
-data [affine] Handle = Empty | Resource(int64);
+variant [affine] Handle = Empty | Resource(int64);
 // Handle has been associated with the attribute named 'affine'
 ```
 
 ### *Product* types
 
-Product types are modelled on *tuples*, which is convenient *on the fly* type declarations, but can be a bit vague in the meaning of members of the tuple. For instance, to present a type `(string, string)` it is completely unclear what the two members are for. Thus the language support two variants of the *product* type.
-* pure tuple
-  Here the members are unnamed and keyed just by index
-* record type
-  The members of the type are named and keyed by name
+Product types are modelled on *tuples*, which is convenient *on the fly* type declarations, but can be a bit vague in the meaning of members of the tuple. For instance, to present a type `(string, string)` it is completely unclear what the two members are for. Thus the language support two variants of the *product* type. Even then, all *product* types are defined *on-the-fly*.
+* pure tuple     
+  Here the members are unnamed and keyed just by index. *On the fly* typed using *tuple* syntax. These are keyed in the symbol table by the list of types.
+* record type  
+  The members of the type are named and keyed by name. These are keyed in the symbol table by the set of property name/type pairs. A predefined structure can also be declared using the *struct* keyword. No guarantees made about the layout of these structures.
 
 #### Examples
+
+```
+// Tumple
+auto x = (5, "test"); // a tuple of type (int64, string)
+auto x = { name = "David", surname = "Lindeque" }; // record type
+struct person {
+  string name;
+  string surname;
+}; // keyed by struct name.
+```
 
 ### Constant declarations
 
@@ -215,16 +231,37 @@ To define a constant the type, name and value must be supplied, although `auto` 
 const: expression name "=" expression ";"
 ```
 
+#### Examples
+
+```
+int64 x1 = 5;
+auto x2 = 5; // int64
+auto msg = "Hello world";
+```
+
 ### Function declarations
 
 ```
-auto main(string[] args) -> Operation<int64>
+auto main(std::random_access_iterator<string> args) -> std::operation<int64>
 {
     // This is monadic
-    let name = readLine();
-    writeLine(name);
+    let name = std::readLine();
+    std::cout << name << std::endl;
     return 0;
 };
 
-auto add(int64 x, int64 y) -> int64 = x + y; // This is not monadic
+auto add(int64 x, int64 y) -> int64 
+{
+    // This is not monadic
+    return x + y;
+};
+
+auto getLine() -> std::operation<std::string>
+{
+    return readLine();
+};
 ```
+
+## Classes
+
+A type can be attached to a class, which would add some requirements on the type, i.e.: some functions might be required, etc. This is borrowed from Haskell, to bring consistency amongst types. 
