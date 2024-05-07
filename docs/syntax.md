@@ -2,6 +2,7 @@
 
 The language contains the following constructs
 * Comments
+* Forward declarations
 * Type declarations
 * Constant declarations
 * Function declarations
@@ -97,7 +98,7 @@ attributes: // empty
 
 ### Names
 
-The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator<operator>` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
+The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator{operator}` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
 
 #### Syntax
 
@@ -159,6 +160,30 @@ auto operator+(mytype lhs, mytype rhs) -> mytype {
 
 ```
 
+## Forward declarations
+
+The symbol table is indexed by name/type pairs. So, a forward declaration only needs a name and type to be able to *reference* it before it was *declared*.
+
+
+### Syntax
+
+```
+forward: expression name ";"
+```
+
+### Examples
+
+```
+// forward declare a sum type
+variant maybe<a>;
+
+// forward declare a product type
+struct person;
+
+// forward declare a function
+auto add(int64 x, int64 y) -> int64;
+```
+
 ## Type declarations
 
 There are two kinds of types to be declared
@@ -169,7 +194,7 @@ Any type can be associated with a set of attributes, which means all *instantiat
 
 ### *Sum* types
 
-Sum types are modelled after the familiar Haskell syntax using C++ naming. The `variant` keyword is an alias for `::std::variant`.
+Sum types are modelled after the familiar Haskell syntax using C++ naming.
 
 #### Syntax
 
@@ -186,17 +211,17 @@ member:
 #### Examples
 
 ```
-variant YesNo = Yes | No;
-// YesNo is an expression of type 'type'
-// Yes and No are expressions of type 'YesNo'
+variant yesno = yes | no;
+// yesno is an expression of type 'type'
+// yes and no are expressions of type 'yesno'
 
-variant Maybe<a> = None | Some(a);
-// Maybe is a constructor taking one parameter of type 'type', i.e.: 'type->type'
-// None is a constructor taking no parameters, i.e.: 'Maybe<a>'
-// Some is a constructor taking one parameter of type 'a', i.e.: 'a->Maybe<a>'
+variant maybe<a> = none | some(a);
+// maybe is a constructor taking one parameter of type 'type', i.e.: 'type->type'
+// none is a constructor taking no parameters, i.e.: 'maybe<a>'
+// some is a constructor taking one parameter of type 'a', i.e.: 'a->maybe<a>'
 
-variant [affine] Handle = Empty | Resource(int64);
-// Handle has been associated with the attribute named 'affine'
+variant [affine] handle = empty | resource(int64);
+// handle has been associated with the attribute named 'affine'
 ```
 
 ### *Product* types
@@ -211,8 +236,8 @@ Product types are modelled on *tuples*, which is convenient *on the fly* type de
 
 ```
 // Tumple
-auto x = (5, "test"); // a tuple of type (int64, string)
-auto x = { name = "David", surname = "Lindeque" }; // record type
+auto x = (5, "test"); // a tuple of type (int64, string). Keyed by name = "tuple", type = {int64, string}
+auto x = { name = "David", surname = "Lindeque" }; // record type. It'll be keyed by a composition of the field names and type as a composition of field types. I.e.: name = {name,surname}, type = {string,string}
 struct person {
   string name;
   string surname;
@@ -265,3 +290,34 @@ auto getLine() -> std::operation<std::string>
 ## Classes
 
 A type can be attached to a class, which would add some requirements on the type, i.e.: some functions might be required, etc. This is borrowed from Haskell, to bring consistency amongst types. 
+
+
+## Expressions
+
+The *IO* monad is generalised as the *operation* monad. This monad encapsulates input-output operations to both console and file, but also includes mutation of data structures (using linear type constraints).
+
+### *Operation* expressions
+
+* `if` `then` and `if` `then` `else`  
+  The `if` expression variants take an expression evaluating to `boolean`, and expressions evaluating to `operation<void>` as bodies for the *then* and *else* sections.
+  #### Syntax
+  ```
+  if_expression:
+        "if" "(" expression ")" "{" expression "}"
+      | "if" "(" expression ")" "{" expression "}" "else" "{" expression "}"
+  ```
+  #### Examples
+  ```
+  if (x == 5) {
+    std::cout << "x == 5" << std::endl;
+  };
+
+  if (y == 6) {
+    std::cout << "y == 6" << std::endl;
+  }
+  else {
+    std::cout << "y != 6" << std::endl;
+  }
+  ```
+* `for` and `foreach`
+* `while` and `do` `until`
