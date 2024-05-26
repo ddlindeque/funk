@@ -6,7 +6,6 @@ The language contains the following constructs
 * Type declarations
 * Constant declarations
 * Function declarations
-* Classes
 
 ## Comments
 
@@ -98,7 +97,7 @@ attributes: // empty
 
 ### Names
 
-The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator{operator}` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
+The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator({operator})` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator(+)`. All operators are defined in the root namespace.
 
 #### Syntax
 
@@ -109,8 +108,7 @@ name:
   | "::" IDENTIFIER
   | name "::" IDENTIFIER
   | name "<" cse ">"
-  | OPERATOR_PLUS
-  | OPERATOR_MINUS
+  | "operator" "(" OPERATOR ")"
   ...
 
 namespace: 
@@ -122,13 +120,13 @@ namespace:
 #### Examples
 
 ```
-auto print<[class(Printable)] a>(a[] items) -> Operation<void>
+auto operator(<<)<a>(std::ostream os, a[] items) -> Operation<std::ostream>
 {
-  std::cout << '[';
+  os << '[';
   for(x : items) {
-    std::cout << ' ' << x;
+    os << ' ' << x;
   }
-  std::cout << ']';
+  return os << ']';
 }
 
 namespace A {
@@ -154,7 +152,7 @@ std::string z = "Plain"; // Defining a symbol A::z
 std::string ::r = "root"; // Defining a symbol r
 }
 
-auto operator+(mytype lhs, mytype rhs) -> mytype {
+auto operator(+)(mytype lhs, mytype rhs) -> mytype {
   //...
 }
 
@@ -286,12 +284,6 @@ auto getLine() -> std::operation<std::string>
     return readLine();
 };
 ```
-
-## Classes
-
-A type can be attached to a class, which would add some requirements on the type, i.e.: some functions might be required, etc. This is borrowed from Haskell, to bring consistency amongst types. 
-
-
 ## Expressions
 
 The *IO* monad is generalised as the *operation* monad. This monad encapsulates input-output operations to both console and file, but also includes mutation of data structures (using linear type constraints).
