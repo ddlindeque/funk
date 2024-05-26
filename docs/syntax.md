@@ -99,6 +99,10 @@ attributes: // empty
 
 The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator({operator})` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator(+)`. All operators are defined in the root namespace.
 
+#### Packages
+
+We are undecided on a package system. For a start, we will adopt the JavaScript/TypeScript model, which means some symbols will be declared as *export*. Those symbols will be accessible from any module which imports them.
+
 #### Syntax
 
 ```
