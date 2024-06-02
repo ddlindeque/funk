@@ -56,7 +56,7 @@ In the above, the `auto pi = 3.1415;` statement is an actual statement, and not 
 
 ## General approach
 
-The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some C# influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `std::random_access_iterator<string>->std::operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*.
+The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some c++/cli influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `std::random_access_iterator<string>->std::operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*. We do not have c++ templates, but cli generics.
 
 ### Everything are expressions
 
@@ -71,9 +71,9 @@ The language is based on *expressions*
 * Function type constructors, i.e.: `int64->string` is an *expression* using `->` as a binary operator with a type `type->type->type`.
 * Function calls are modelled on C++, i.e.: `add(4,5);`
 * Statements are seperated by `;`
-* Generics are modelled after the C# style
+* Generics are modelled after the C++/CLI style, but generics, not templates.
 * Attributes are also just expressions, but they happen to evaluate to a value of type `attribute`
-* The *standard library* will follow the same conventions as C++, maps will be `::std::map`, etc. Some types, like *string* will have an alias as a keyword, i.e.: `string` will be alias to `::std::string`.
+* The *standard library* will follow the same conventions as C++, maps will be `::std::map`, albeit the interface might be different (i.e. mutability concerns), etc. Some types, like *string* will exist as a first class citizen.
 
 ### Expression lists
 
@@ -97,7 +97,7 @@ attributes: // empty
 
 ### Names
 
-The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator({operator})` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator(+)`. All operators are defined in the root namespace.
+The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator{operator}` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
 
 #### Packages
 
@@ -111,8 +111,7 @@ name:
     IDENTIFIER
   | "::" IDENTIFIER
   | name "::" IDENTIFIER
-  | name "<" cse ">"
-  | "operator" "(" OPERATOR ")"
+  | "operator" OPERATOR
   ...
 
 namespace: 
@@ -124,7 +123,8 @@ namespace:
 #### Examples
 
 ```
-auto operator(<<)<a>(std::ostream os, a[] items) -> Operation<std::ostream>
+generic<a>
+auto operator<<(std::ostream os, a[] items) -> Operation<std::ostream>
 {
   os << '[';
   for(x : items) {
@@ -156,7 +156,7 @@ std::string z = "Plain"; // Defining a symbol A::z
 std::string ::r = "root"; // Defining a symbol r
 }
 
-auto operator(+)(mytype lhs, mytype rhs) -> mytype {
+auto operator+(mytype lhs, mytype rhs) -> mytype {
   //...
 }
 
@@ -176,14 +176,17 @@ forward: expression name ";"
 ### Examples
 
 ```
-// forward declare a sum type
+// forward declare a sum type (The name is the type name)
 variant maybe<a>;
 
-// forward declare a product type
+// forward declare a product type (The name is the type name)
 struct person;
 
 // forward declare a function
 auto add(int64 x, int64 y) -> int64;
+
+// forward declare a value
+int64 x;
 ```
 
 ## Type declarations
@@ -217,7 +220,7 @@ variant yesno = yes | no;
 // yesno is an expression of type 'type'
 // yes and no are expressions of type 'yesno'
 
-variant maybe<a> = none | some(a);
+generic<a> variant maybe = none | some(a);
 // maybe is a constructor taking one parameter of type 'type', i.e.: 'type->type'
 // none is a constructor taking no parameters, i.e.: 'maybe<a>'
 // some is a constructor taking one parameter of type 'a', i.e.: 'a->maybe<a>'
@@ -232,7 +235,7 @@ Product types are modelled on *tuples*, which is convenient *on the fly* type de
 * pure tuple     
   Here the members are unnamed and keyed just by index. *On the fly* typed using *tuple* syntax. These are keyed in the symbol table by the list of types.
 * record type  
-  The members of the type are named and keyed by name. These are keyed in the symbol table by the set of property name/type pairs. A predefined structure can also be declared using the *struct* keyword. No guarantees made about the layout of these structures.
+  The members of the type are named and keyed by name. These are keyed in the symbol table by the set of property name/type pairs. A predefined structure can also be declared using the *struct* keyword. No guarantees made about the layout of these structures, unless the appropriate *attribute* was specified. More on this later.
 
 #### Examples
 
@@ -243,12 +246,12 @@ auto x = { name = "David", surname = "Lindeque" }; // record type. It'll be keye
 struct person {
   string name;
   string surname;
-}; // keyed by struct name.
+}; // keyed by struct name 'person' and type 'person'.
 ```
 
-### Constant declarations
+### Value declarations
 
-To define a constant the type, name and value must be supplied, although `auto` can be used as the type, to allow type inference. It is not possible to declare a *generic* constant, since it's not possible to create an instance of a generic type. The language declare the following constant values by default
+To define a value expression, name and value must be supplied, although `auto` can be used as the type, to allow type inference. It is not possible to declare a *generic* value, since it's not possible to create an instance of a generic type. The language declare the following values by default
 * `()` which is the only value of type `void`.
 * `[]` which is a generic value representing an empty list of the generic type.
 
