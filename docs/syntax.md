@@ -124,7 +124,7 @@ namespace:
 
 ```
 generic<a>
-auto operator<<(std::ostream os, a[] items) -> Operation<std::ostream>
+auto operator<<(std::ostream os, a[] items) -> std::operation<std::ostream>
 {
   os << '[';
   for(x : items) {
@@ -297,6 +297,12 @@ The *IO* monad is generalised as the *operation* monad. This monad encapsulates 
 
 ### *Operation* expressions
 
+The core function for making mutation is as follows
+```c++
+// update the instance of the first parameter to the value of the second parameter
+operation<a> update([affine, out] a, a);
+```
+
 * `if` `then` and `if` `then` `else`  
   The `if` expression variants take an expression evaluating to `boolean`, and expressions evaluating to `operation<void>` as bodies for the *then* and *else* sections.
   #### Syntax
@@ -316,7 +322,35 @@ The *IO* monad is generalised as the *operation* monad. This monad encapsulates 
   }
   else {
     std::cout << "y != 6" << std::endl;
+  };
+  ```
+* `for`  
+  The `for` statement contains the following three sections
+  * initialising statement
+  * compare statement
+  * increment statement
+  * body
+
+  This can be modelled as a creating a monad as follows:
+  ```c++
+  {
+    loop(/*body*/, /*predicate*/, /*update mutable state*/, /*collection*/);
   }
   ```
-* `for` and `foreach`
+  Example
+  ```c++
+  for(int64 i = 0; i < 10; ++i) {
+    op(i);
+  };
+  ```
+  ```c++
+  loop<int64>(
+    ([in] int64 i) => op(i), 
+    0,
+    ([in] int64 i) => i < 10, 
+    ([in, out] int64 i) => ++i
+    // operation<int64> operator++([affine, in, out] int64 i) { update(i, i+1); }
+  ```
+* `foreach`  
+  This maps to an iterator to the `for` above.
 * `while` and `do` `until`
