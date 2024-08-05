@@ -4,6 +4,20 @@
 
 The *Programming Language* which is *pure functional*, allow *mutation* and have *operations*.
 
+## Todo
+
+### Language Server
+
+* Following [Documentation](https://code.visualstudio.com/api/language-extensions/overview)  
+* [ ] Implement basic syntax highlighter
+* [ ] Implement basic snippet completion
+* [ ] Implement [basic syntax highlighting](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide)
+* [ ] Implement [basic snippet completion](https://code.visualstudio.com/api/language-extensions/snippet-guide)
+* [ ] Implement [basic language configuration](https://code.visualstudio.com/api/language-extensions/language-configuration-guide)
+* [ ] Study [Programatic Language Features](https://code.visualstudio.com/api/language-extensions/overview#programmatic-language-features)
+
+### Language Syntax
+
 ## Features
 
 Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
