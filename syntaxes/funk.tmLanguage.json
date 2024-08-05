@@ -13,7 +13,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.funk",
-				"match": "\\b(if|while|for|return|dawie)\\b"
+				"match": "\\b(if|while|for|return)\\b"
 			}]
 		},
 		"strings": {

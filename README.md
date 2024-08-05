@@ -9,7 +9,8 @@ The *Programming Language* which is *pure functional*, allow *mutation* and have
 ### Language Server
 
 * Following [Documentation](https://code.visualstudio.com/api/language-extensions/overview)  
-* [ ] Implement basic syntax highlighter
+* [x] Implement basic syntax highlighter  
+  The debugging instance does not update automatically - best I could do was to restart the whole session.
 * [ ] Implement basic snippet completion
 * [ ] Implement [basic syntax highlighting](https://code.visualstudio.com/api/language-extensions/syntax-highlight-guide)
 * [ ] Implement [basic snippet completion](https://code.visualstudio.com/api/language-extensions/snippet-guide)
