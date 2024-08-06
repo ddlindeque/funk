@@ -10,7 +10,7 @@
     "Programming Languages"
   ],
   "activationEvents": [],
-  "main": "./dist/extension.js",
+  "main": "./dist/client/extension.js",
   "contributes": {
     "commands": [
       {
@@ -28,6 +28,21 @@
       "language": "funk",
       "scopeName": "source.funk",
       "path": "./syntaxes/funk.tmLanguage.json"
+    }],
+    "configuration": [{
+      "title": "Dawie Config",
+      "properties": {
+        "dawie.property1": {
+          "type": "boolean",
+          "default": false,
+          "description": "This is dawie property 1 with default false"
+        },
+        "dawie.property2": {
+          "type": "integer",
+          "default": 17,
+          "description": "This is dawie property 2 with default 17"
+        }
+      }
     }]
   },
   "scripts": {
