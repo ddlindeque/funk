@@ -22,12 +22,12 @@
       "id": "funk",
       "aliases": [],
       "extensions": [".funk"],
-      "configuration": "./language-configuration.json"
+      "configuration": "./syntax/language-configuration.json"
     }],
     "grammars": [{
       "language": "funk",
       "scopeName": "source.funk",
-      "path": "./syntaxes/funk.tmLanguage.json"
+      "path": "./syntax/funk.tmLanguage.json"
     }],
     "configuration": [{
       "title": "Dawie Config",
