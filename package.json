@@ -1,6 +1,6 @@
 {
   "name": "funk",
-  "displayName": "funk Prgramming Language",
+  "displayName": "funk Programming Language",
   "description": "A functional programming language with mutations and operations",
   "version": "0.0.1",
   "engines": {
@@ -20,7 +20,7 @@
     ],
     "languages": [{
       "id": "funk",
-      "aliases": ["funk", "funk"],
+      "aliases": [],
       "extensions": [".funk"],
       "configuration": "./language-configuration.json"
     }],
