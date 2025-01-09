@@ -1,5 +1,9 @@
 # *funk* - A Functional Programming Language
 
+## Getting started
+
+* To run in node.js, press F5, ask for the command "Hello World", see it's from Node.js
+
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ddlindeque/funk?quickstart=1)
 
 The *Programming Language* which is *pure functional*, allow *mutation* and have *operations*.
@@ -86,3 +90,7 @@ You can author your README using Visual Studio Code. Here are some useful editor
 * [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
 
 **Enjoy!**
+
+# Test your Web Extension
+
+https://code.visualstudio.com/api/extension-guides/web-extensions#test-your-web-extension-in-vscode.dev
