@@ -2,78 +2,38 @@
   "name": "funk",
   "displayName": "funk Programming Language",
   "description": "A functional programming language with mutations and operations",
-  "version": "0.0.1",
+  "author": "David Lindeque",
+  "license": "MIT",
+  "version": "1.0.0",
+  "publisher": "David Lindeque",
+  "categories": ["Programming Languages"],
   "engines": {
-    "vscode": "^1.92.0"
+    "vscode": "^1.75.0"
   },
-  "categories": [
-    "Programming Languages"
+  "activationEvents": [
+    "onLanguage"
   ],
-  "activationEvents": [],
-  "main": "./dist/client/main.js",
-  "browser": "./dist/client/browser.js",
+  "main": "./client/out/main",
   "contributes": {
+    "configuration": {},
     "commands": [
       {
         "command": "funk.helloWorld",
         "title": "Hello World"
       }
-    ],
-    "languages": [{
-      "id": "funk",
-      "aliases": [],
-      "extensions": [".funk"],
-      "configuration": "./syntax/language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "funk",
-      "scopeName": "source.funk",
-      "path": "./syntax/funk.tmLanguage.json"
-    }],
-    "configuration": [{
-      "title": "Dawie Config",
-      "properties": {
-        "dawie.property1": {
-          "type": "boolean",
-          "default": false,
-          "description": "This is dawie property 1 with default false"
-        },
-        "dawie.property2": {
-          "type": "integer",
-          "default": 17,
-          "description": "This is dawie property 2 with default 17"
-        }
-      }
-    }]
+    ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "webpack",
-    "watch": "webpack --watch",
-    "package": "webpack --mode production --devtool hidden-source-map",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "vscode-test"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^9.0.1",
-    "vscode-languageserver": "^7.0.0"
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+    "clean": "./scripts/clean.sh",
+    "rebuild": "npm run clean; npm run compile",
+    "reset": "./scripts/reset.sh"
   },
   "devDependencies": {
-    "@types/vscode": "^1.88.0",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@typescript-eslint/eslint-plugin": "^7.7.1",
-    "@typescript-eslint/parser": "^7.7.1",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.5",
-    "ts-loader": "^9.5.1",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4",
-    "@vscode/test-cli": "^0.0.8",
-    "@vscode/test-electron": "^2.3.9",
-    "mkcert": "^3.2.0"
+    "@types/node": "^20.5.7",
+    "typescript": "^5.2.2"
   }
 }

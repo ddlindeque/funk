@@ -1,5 +1,5 @@
-dist/*
-node_modules/*
-src/client/node_modules/*
-src/server/node_modules/*
-.vscode-test-web/*
+out
+node_modules
+client/server
+.vscode-test
+tsconfig.tsbuildinfo
