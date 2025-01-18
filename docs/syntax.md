@@ -2,7 +2,8 @@
 
 The language contains the following constructs
 * Comments
-* Forward declarations
+* ```import``` statements
+* Function declarations
 * Type declarations
 * Constant declarations
 * Function declarations
@@ -56,7 +57,15 @@ In the above, the `auto pi = 3.1415;` statement is an actual statement, and not 
 
 ## General approach
 
-The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates, especially in type declaration. There's also some c++/cli influence. The language is *pure functional* and statically typed. The entry point of a program is `::main` with a type signature `std::random_access_iterator<string>->std::operation<int64>`. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*. We do not have c++ templates, but cli generics.
+The approach is to have a syntax which is recognisable as C++ procedural syntax, but have Haskell-like syntax where it abreviates. The language is *pure functional* and statically typed. The language allow for *name overloading*. A symbol must be unique only in *name/type* pair. This allow for *ad-hoc* polymorphism, and is useful for *operator overloading*. We do not have c++ templates, but cli like generics.
+
+A document must have the following structure:
+
+```
+imports
+
+declarations
+```
 
 ### Everything are expressions
 
@@ -69,33 +78,116 @@ The language is based on *expressions*
 * The *type* of a type is `type`. So, `int64` evaluate to a value with the type of `type`.
 * Type literals, i.e.: `int64` or `string` are just *expressions* which happen to evaluate to an instance of `type`.
 * Function type constructors, i.e.: `int64->string` is an *expression* using `->` as a binary operator with a type `type->type->type`.
-* Function calls are modelled on C++, i.e.: `add(4,5);`
-* Statements are seperated by `;`
-* Generics are modelled after the C++/CLI style, but generics, not templates.
 * Attributes are also just expressions, but they happen to evaluate to a value of type `attribute`
-* The *standard library* will follow the same conventions as C++, maps will be `::std::map`, albeit the interface might be different (i.e. mutability concerns), etc. Some types, like *string* will exist as a first class citizen.
 
-### Expression lists
+### Structure
 
-#### Comma seperated expressions
+* Function calls are modelled on C++, i.e.: `add(4,5);`
+* Function declarations are also modelled on C++, i.e.: `auto name(parameters) -> return_type` (where return type is optional)
+* Statements are seperated by `;`
+* The *standard library* will follow the same conventions as C++
+* Monad's use '{' '}' blocks
+* The entry point is a function named 'main' that returns ```operation<int>```
+
+## Expressions
+
+We have the following types of expressions:
+
+* Literals
+  * Value literals like ```5```, ```()``` which have type ```void``` (the unit). array literals?
+  * Type literals like ```int64```
+  * Attribute literal like ```linear```
+* Variables using identifiers, like ```x```
+* Application
+  * We're using c++ style application, using parethesis, i.e.: ```add(5,4)```. Partial application is allowed, like ```add(5)```, ```add(_,5)``` or ```add(5,_)```.
+* Operators  
+  * We have various operators, some for values, some for types.
+* Lambda's
+  The capture is inferred
+
+## Type inference
+
+We have a system of *linear types*, which makes mutation and resource management possible. A linear type has to be referenced no more than once, and may be referred to once only. This means we can allocate and heap memory like so:
 
 ```
-cse: // empty set
-    | cse "," expression
+generic<T> auto operator new() -> [linear] T *;
+generic<T> auto operator new[](size_t count) -> [linear] T[]
+generic<T> auto delete([linear] T* p) -> void;
+generic<T> auto delete([linear] T[] p) -> void;
+
+generic<T> auto operator *(T* x) -> T&;
+generic<T> auto operator &(T& x) -> T*;
+
+generic<T> auto update([linear] T& x, T new_value) -> operation<void>; // The 'x' is an 'in/out' parameter, meaning that 'linearity' is zero.
+
+auto operator=([linear] int &x, const int &y)
+{
+  update(x, y)
+}
+
+// Example 1
+int* x = new int;
+*x = 7; // This will work since it calls 'update' and the dereferencing is on a linear pointer. The new 'x' will be 'replaced' with a new linear instance
+delete x; // This MUST be called, since the linear x must be referenced
+
+// Example 2
+int* x = new int;
+*x = 7; // Same as above
+int* y = x; // Will not work, since x is linear (because of 'new' function)
+
+// Example 3
+int y = 8; // y is immutable
+int* z = &y; // Setting up a pointer to a non-heap type, which is not linear
+*z = 9; // This will not work, since *z dereferenced is not linear.
+int* k = z; // Will work, since z is not linear
 ```
 
-### Attributes
+Another example is file handles
+```
+auto open(string fn) -> [linear] int;
+auto close([linear] int handle) -> void;
 
-Any expression can be associated with a set of attributes. For instance to associate the linearity of a type is specified as an attribute, like so `[affine] int64`.
-
-#### Syntax
+auto read(int& handle, void* buffer) -> void; // Since handle is 'in/out', it doesn't affect the linearity
 
 ```
-attributes: // empty
-    | "[" cse "]"
+
+## Function declarations
+
+We have 2 kinds of functions, one that returns a monad, and one that doesn't. For functions that returns a monad, we use {} braces, like for instance:
+
+```
+auto print_hello_world()
+{
+  std::cout << "Hello world" << std::endl;
+}
 ```
 
-### Names
+This function returns `operation<void>`.
+
+The other kind looks like this
+
+```
+auto add_numbers(int x, y) = x + y;
+```
+
+When defining a function like ```auto add_numbers(x,y) = x + y```, the compiler will notice that the '+' operator has been overloaded a number of times, and thus will keep the function generic, like ```generic<x, y, z> auto add_numbers(x x, y y) -> z = x + z```, to be instantiated at the call sites.
+
+## Type declarations
+
+### Product types
+
+* tuples
+* structures
+
+### Sum types
+
+```generic<T> Maybe = Just(T value) | Nothing```
+
+
+## Names
+
+* All operators must be declared in the root namespace
+
 
 The approach to names follow C++ syntax. Namespaces are declare and scoped using `{` `}`, and can be nested. It is allowed to *collapse* nested namespaces into the name. The *anonymous* namespace is also allowed, basically rendering symbols in that namespace as *private*. A *name* can have optionally the namespace, then the name of the symbol, then the optional generic arguments. To reference the root namespace, use `::`, i.e.: `::A::B`. Operators are named using `operator{operator}` approach, modelling on C++. For instance, the `+` operator can be referenced, as a function, using the name `operator+`. All operators are defined in the root namespace.
 
@@ -291,6 +383,7 @@ auto getLine() -> std::operation<std::string>
     return readLine();
 };
 ```
+
 ## Expressions
 
 The *IO* monad is generalised as the *operation* monad. This monad encapsulates input-output operations to both console and file, but also includes mutation of data structures (using linear type constraints).

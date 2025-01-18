@@ -6,13 +6,13 @@
   "license": "MIT",
   "version": "1.0.0",
   "publisher": "David Lindeque",
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages"
+  ],
   "engines": {
     "vscode": "^1.75.0"
   },
-  "activationEvents": [
-    "onLanguage"
-  ],
+  "activationEvents": [],
   "main": "./client/out/main",
   "contributes": {
     "configuration": {},
@@ -20,6 +20,26 @@
       {
         "command": "funk.helloWorld",
         "title": "Hello World"
+      }
+    ],
+    "languages": [
+      {
+        "id": "funk",
+        "extensions": [
+          ".funk"
+        ],
+        "configuration": "./syntax/funk-configuration.json",
+        "icon": {
+          "light": "./resources/funk.png",
+          "dark": "./resources/funk.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "funk",
+        "path": "./syntax/funk.tmLanguage.json",
+        "scopeName": "source.funk"
       }
     ]
   },
@@ -33,8 +53,10 @@
     "watch": "tsc -b -w",
     "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
     "clean": "./scripts/clean.sh",
-    "rebuild": "npm run clean; npm run compile",
-    "reset": "./scripts/reset.sh"
+    "build": "npm run compile; npm run package",
+    "rebuild": "npm run clean; npm run build",
+    "reset": "./scripts/reset.sh",
+    "package": "vsce package -o ./packages/"
   },
   "devDependencies": {
     "@types/node": "^20.5.7",
