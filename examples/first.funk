@@ -1,0 +1,60 @@
+#import <something>
+
+auto allocate(int size) -> operation<relevant<void*>>; // must be reference at least once (i.e.: free)
+auto free(const affine<void*> &heap) -> operation<void>; // heap may not be referenced more than once, since this is mutating
+
+template<typename T>
+auto update(affine<T&> r, const T& value) -> operation<T>; // As input, it must be affine (since we're mutating), we put no restrictions on output
+
+auto operator+(int a, int b) -> int;
+auto operator-(int a, int b) -> int;
+
+auto operator++(affine<int&> r) -> operation<int> // as input, must be affine, don't care about output
+{
+    return update(r, r+1);
+}
+
+auto operator--(affine<int&> r) = update(r, r-1); // operation<int>
+
+auto operator+=(affine<int&> r, int value) -> operation<int>
+{
+    update(r, r+value);
+}
+
+auto operator-=(affine<int&> r, int value) -> operation<int>
+{
+    return update(r, r-value);
+}
+
+auto add(auto x, auto y) = x + y; // not an operation, using auto-generalisation, i.e.: T1(T2,T3), but we found only T(T,T) for operator+, so we have T(T,T)
+
+auto shake(affine<tree&> t) // returns an operation, since it's using { }
+{
+    update(t, {});
+    return "test"; // returns operation<string>
+}
+
+auto operator<<(affine<std::ostream&> stm, char ch) -> operation<void>; // mutating stm, thus it's affine
+auto operator<<(affine<std::ostream&> stm, std::string ch) -> operation<void>;
+auto operator<<(affine<std::ostream&> stm, int ch) -> operation<void>;
+auto operator<<(affine<std::ostream&> stm, float ch) -> operation<void>;
+auto operator<<(affine<std::ostream&> stm, bool ch) -> operation<void>;
+
+struct ProductType {
+    int a;
+    std::string b;
+};
+
+union Settlement {
+    Unrestricted(),
+    Onshore(std::string currency)
+};
+
+auto main(std::ranges::random_access_range<string> _) -> operation<int>
+{
+    auto buffer = allocate(10);
+    update(buffer, something);
+    free(buffer);
+    std::cout << "Testing this" << std::endl;
+    return 0;
+}
