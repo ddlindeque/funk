@@ -1,44 +1,155 @@
 #import <something>
 
-auto allocate(int size) -> operation<relevant<void*>>; // must be reference at least once (i.e.: free)
-auto free(const affine<void*> &heap) -> operation<void>; // heap may not be referenced more than once, since this is mutating
+/*
+Monad primer:
+
+template<typename T, typename M>
+auto unit(T a) -> M<T>;
 
 template<typename T>
-auto update(affine<T&> r, const T& value) -> operation<T>; // As input, it must be affine (since we're mutating), we put no restrictions on output
+auto unit(M<T> a) -> M<T> = a; // Like a identity for monads
+
+template<typename a, typename b, typename M>
+auto bind(M<a> a, M<b>(a) f) -> M<b>;
+
+Example 1
+{
+    return 3;
+}
+=>
+unit(3) // This still needs casting to a specific monad (M)
+
+Example 2
+{
+    op1();
+    return 3;
+}
+=>
+bind(op1(), [](auto _) { returun unit(3); })
+
+Example 3
+{
+    auto x = something();
+    return x;
+}
+=>
+bind(something(), [](auto x) { return unit(x); })
+
+Example 4
+{
+    auto x = something1();
+    something2(x);
+    return 3;
+}
+=>
+bind(something1(),[](auto x) { return bind(something2(x), [](auto _) { return unit(3); }) })
+
+Example 5
+{
+    auto x = something1();
+    something2();
+    return x;
+}
+=>
+bind(something1(),[](auto x) { return bind(something2(), [](auto _) { return unit(x); }) })
+
+Example 6
+{
+    something()
+}
+=>
+something()
+
+Algorithm (functional)
+1. set pointer to last expression and capture ex=expression (validate it is not lambda) (If we have no expression, replace by 'return', which is unit(void), void is the 'unit' instance
+2. move pointer up, if end, stop
+3. if lambda auto x = body, construct l=[](auto x) { return ex; }, else if body construct l=[](auto _) { return ex; }, set ex = bind(body, l)
+4. goto 2
+
+*/
+
+// void* is an integer with a constant value, i.e: it points to a memory address and that address cannot be updated.
+// We also define it relevant and affine, which means the address must be referenced once (free) and not more than once, i.e.: cannot be copied.
+auto allocate(int size) -> [affine, relevant] operation<void*>;
+
+// [affine] values can be passed to [affine] values only. I.e.: if a value is [affine], it can be passed as an 'in' parameter to types marked [affine] only.
+auto free([affine] void* heap) -> operation<void>; // heap may not be referenced more than once, since this is mutating
+
+// Theoretically we can have a function that free the 'in' pointer, and allocate the 'out' pointer, something like this
+auto reallocate(int size, [affine, out:affine, out:relevant] void* &p) -> operation<void>
+{
+    auto x = allocate(size);
+    free(p);
+    p = x;
+}
+// we have no return statement, so we add one (return)
+// bind(allocate(size), [](auto x) { return bind(free(p), [](auto x) { return bind(p=x, [](auto _) { return unit(void); }) }) })
+
+using handle = int;
+
+auto open(char* fn, char* mode) -> [affine, relevant] operation<handle>;
+auto close([affine] handle h) -> operation<void>;
+auto read(handle h, size_t bytes, void* buffer) -> operation<size_t>; // How to handle safety on array size?
+auto write(handle h, size_t bytes, void* buffer) -> operation<void>;
+
+template<typename T>
+auto operator*(T& obj) T*; // obj 'consume' the linearity of obj, so we have no object left after this returns. Linearity transfered to the return type.
+
+template<typename T>
+auto update([affine, out:affine] T& r, T value) -> operation<void>; // As input, it must be affine (since we're mutating), we put no restrictions on output
+
+// auto x = y = 3 => x = operator=(y, 3) => operator=(x, operator=(y, 3)). Both x and y updated to 3
+template<typename T>
+auto operator=([affine, out:affine] T& r, T value) -> operation<T> // this does work, since we're duplicating the 'value' parameter, which is not defined as 'affine'
+{
+    update(r, value);
+    return value;
+}
+// bind(update(r, value), [](auto _) { return unit(value); })
 
 auto operator+(int a, int b) -> int;
 auto operator-(int a, int b) -> int;
 
-auto operator++(affine<int&> r) -> operation<int> // as input, must be affine, don't care about output
+auto operator++([affine] int& r) -> operation<int> // as input, must be affine, don't care about output
 {
     return update(r, r+1);
 }
+// unit(update(r, r+1))
 
-auto operator--(affine<int&> r) = update(r, r-1); // operation<int>
+auto operator--([affine] int& r) = update(r, r-1); // operation<int>
 
-auto operator+=(affine<int&> r, int value) -> operation<int>
+auto operator+=([affine, out:affine] int& r, int value) -> operation<int>
 {
-    update(r, r+value);
+    auto v = r+value;
+    return r=v;
 }
+// bind(r+value, [](auto v) { return unit(r=v); })
 
-auto operator-=(affine<int&> r, int value) -> operation<int>
+auto operator-=([affine, out:affine] int& r, int value) // We don't have to specify a return type if it can be inferred (which is most the time)
 {
-    return update(r, r-value);
+    auto v = r-value;
+    return r=v;
 }
+// bind(r-value, [](auto v) { return unit(r=v); })
 
-auto add(auto x, auto y) = x + y; // not an operation, using auto-generalisation, i.e.: T1(T2,T3), but we found only T(T,T) for operator+, so we have T(T,T)
+auto add(auto x, auto y) = x + y; // not an operation, using auto-generalisation, i.e.: T1(T2,T3)
 
-auto shake(affine<tree&> t) // returns an operation, since it's using { }
+template<typename Stm, typename Obj>
+auto operator<<([affine] Stm& stm, Obj obj) -> [affine] operation<Stm>;
+
+template<typename Stm, typename Obj>
+auto operator<<([affine] operation<Stm> &stm, Obj obj) -> [affine] operation<Stm> = bind(stm, [](auto x) { return operator<<(x, obj); });
+
+
+auto saySomething([affine, out:affine] std::ostream& stm) -> operation<void> // Although we 'consume' stm as input, we also output it unchanged
 {
-    update(t, {});
-    return "test"; // returns operation<string>
+    stm << "Hello world" << std::endl << "Hope all is well!" << std::endl;
 }
-
-auto operator<<(affine<std::ostream&> stm, char ch) -> operation<void>; // mutating stm, thus it's affine
-auto operator<<(affine<std::ostream&> stm, std::string ch) -> operation<void>;
-auto operator<<(affine<std::ostream&> stm, int ch) -> operation<void>;
-auto operator<<(affine<std::ostream&> stm, float ch) -> operation<void>;
-auto operator<<(affine<std::ostream&> stm, bool ch) -> operation<void>;
+// the (simplified) statement is: operator<<(operator<<(stm, "Hello world"), std::endl)
+// operator<<(std::ostream& stm, "Hello world") -> operation<std::stream>
+// operator<<(operation<std::ostream>& operator<<(std::ostream& stm, "Hello world"), std::endl)
+// => bind(operator<<(std::ostream& stm, "Hello world"), [](auto x) { return operator<<(x, std::endl)})
+// => bind(bind(operator<<(std::ostream& stm, "Hello world"), [](auto x) { return operator<<(x, std::endl)}), [](auto _) => unit(void))
 
 struct ProductType {
     int a;
@@ -50,6 +161,9 @@ union Settlement {
     Onshore(std::string currency)
 };
 
+
+// We have no need for unique pointers (what about shared pointers?)
+// We obviously need containers, do we need iterators? Can we not see all containers as raw types (i.e.: smart pointer idea?)
 auto main(std::ranges::random_access_range<string> _) -> operation<int>
 {
     auto buffer = allocate(10);
